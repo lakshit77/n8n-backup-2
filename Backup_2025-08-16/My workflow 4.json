@@ -1,0 +1,71 @@
+{
+  "createdAt": "2025-08-16T18:37:22.920Z",
+  "updatedAt": "2025-08-16T18:37:22.920Z",
+  "id": "EjPmdfDXn9tdS2sy",
+  "name": "My workflow 4",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -16
+      ],
+      "id": "1be69cea-7365-4a7f-859d-734325377996",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "filters": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -16
+      ],
+      "id": "f5c13e5b-0aa8-41a1-9b9c-577afb80f0ee",
+      "name": "Get many workflows",
+      "credentials": {
+        "n8nApi": {
+          "id": "qbFCYZ5EUrYwtknS",
+          "name": "n8n account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many workflows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "48805298-38d7-49a4-b9b7-17a3a4f8e357",
+  "triggerCount": 0,
+  "tags": []
+}

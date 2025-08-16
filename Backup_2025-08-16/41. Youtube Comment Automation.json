@@ -1,0 +1,19 @@
+{
+  "createdAt": "2025-08-16T14:43:48.041Z",
+  "updatedAt": "2025-08-16T14:44:42.000Z",
+  "id": "TdXQBGvQgYd4Ox9r",
+  "name": "41. Youtube Comment Automation",
+  "active": false,
+  "isArchived": false,
+  "nodes": [],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "9f9fdd17-511b-4afd-b81f-7a591be2e1d0",
+  "triggerCount": 0,
+  "tags": []
+}

@@ -1,0 +1,19 @@
+{
+  "createdAt": "2025-07-13T10:29:03.434Z",
+  "updatedAt": "2025-07-20T13:33:34.000Z",
+  "id": "EbrJmHvXVDeWJRGR",
+  "name": "28_Retell Inbound AI agent",
+  "active": false,
+  "isArchived": true,
+  "nodes": [],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "266d07b0-6433-46a6-bdfe-065096af5e90",
+  "triggerCount": 0,
+  "tags": []
+}

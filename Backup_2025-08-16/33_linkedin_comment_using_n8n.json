@@ -1,0 +1,215 @@
+{
+  "createdAt": "2025-07-24T18:28:03.576Z",
+  "updatedAt": "2025-08-16T06:28:46.000Z",
+  "id": "KLYmEojBIklEv6lE",
+  "name": "33_linkedin_comment_using_n8n",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9e3090bf-eafd-4875-b108-c96fee35b95a",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        -144
+      ],
+      "id": "b109daf4-d9cb-409f-baa8-b6239eeadabc",
+      "name": "Webhook",
+      "webhookId": "0f61ff50-9a9b-4e96-bc3d-77c20494505c"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is a new LinkedIn post to generate a comment for.\n\nPost description:\n\"\"\"\n{{ $json.body.caption }}\n\"\"\"\n\nTone:\n{{ $json.body.tone || \"Professional Tone\"}}  \n\nIf possible, try to include the following feedback question in a natural way:\n{{ $json.body.hint }}(optional)\n\nGenerate a single human-like comment for this post based on the input.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are a helpful, professional assistant that generates thoughtful, human-like comments for LinkedIn posts. Your goal is to help users engage meaningfully on posts by crafting context-aware, relevant, and personalized comments.\n\nYou have access to a short-term memory of recent comments made by the user. Use this memory to:\n- Avoid repetition\n- Maintain variety in language and tone\n- Reflect consistency in personal or professional voice\n\nEach comment should:\n- Reflect the given tone by user\n- Be directly relevant to the post content\n- Feel natural and written by a human\n- Avoid generic phrases unless used intentionally for tone\n\nKeep the comment concise within 40 words\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -144,
+        -192
+      ],
+      "id": "df424228-9690-4826-8a1d-244e41aa3c4a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "={{ $json.body.model||\"gpt-4.1-nano\"}}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        208
+      ],
+      "id": "41455a36-234d-4362-8dee-66b985f2a23a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "L3P9Ae81haTD2rYm",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"comment\": {\n\t\t\t\"type\": \"string\"\n\t\t}\n\t}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        208
+      ],
+      "id": "673df10d-4947-4ac9-b095-b0014d28d348",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "266ca3fd-ed52-4fa0-a8a6-d439fc11387e",
+              "name": "comment",
+              "value": "={{ $json.output.comment }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        -192
+      ],
+      "id": "6fcd4d3d-c9df-4085-9d6a-6ce5b05ed829",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        -192
+      ],
+      "id": "0f11dffa-4669-4fd9-b7d4-a03d827885ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.user_info.id }}",
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -144,
+        256
+      ],
+      "id": "2833f5ef-2061-4326-82d9-21a7bbab45e3",
+      "name": "Simple Memory"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "95f444b6-67df-4d1b-9e54-d462498c317b",
+  "triggerCount": 1,
+  "tags": []
+}

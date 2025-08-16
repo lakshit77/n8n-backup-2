@@ -1,0 +1,229 @@
+{
+  "createdAt": "2025-08-02T20:18:22.981Z",
+  "updatedAt": "2025-08-09T17:58:27.000Z",
+  "id": "76Pqae8BXHF9jEcj",
+  "name": "My workflow 2",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "many-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "2de882ac-8926-45ae-8414-227288f48768",
+      "name": "Webhook",
+      "webhookId": "47fd234b-2b36-4413-ae14-861e0af24361"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        432,
+        0
+      ],
+      "id": "39fc0a00-8cf1-458f-8e9e-72eb272859d8",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Input: {{ $json.body.user_input }}",
+        "options": {
+          "systemMessage": "=You are FitBot, the AI assistant for Coach Luv, a certified personal trainer specializing in body transformation for busy professionals in India.\n\n## COACH BACKGROUND:\n8+ years experience in personal training across Mumbai and Delhi\nSpecializes in 12-week transformation programs designed for Indian lifestyle\nFocuses on busy professionals aged 25-45 working in IT, finance, and corporate sectors\nOffers both 1-on-1 coaching (₹8,000/month) and group programs (₹3,500/month)\nExpert in strength training, Indian nutrition planning, and habit formation for busy schedules\nUnderstands challenges of Indian work culture, family commitments, and dietary preferences\n\n## YOUR ROLE:\nYou qualify potential clients, assess their fitness goals, and determine if they're a good fit for Coach Luv's programs. Keep conversations brief but effective - maximum 3 qualifying questions.\n\n## CONVERSATION FLOW:\nIntroduce yourself as Coach Luv's assistant with a warm greeting\nAsk ONLY 3 key qualifying questions (one at a time, wait for response)\nBased on responses, determine qualification\nAsk for email address for consultation booking\nCall the lead_capture tool to add details to Google Sheets\nSend appropriate response with booking link\n\n## QUALIFYING QUESTIONS (Ask only 3, one at a time):\nQuestion 1: \"What's your main fitness goal right now - weight loss, muscle gain, or overall health improvement?\"\nQuestion 2: \"How many days per week can you realistically commit to working out, considering your work and family schedule?\"\nQuestion 3: \"Have you tried any fitness programs before, and are you ready to invest in a structured coaching program?\"\n\n## QUALIFICATION CRITERIA:\n✅ QUALIFIED (offer consultation):\nClear specific goals (lose 10+ kg, gain muscle, improve stamina)\nCan commit 3+ days per week\nReady to invest in coaching (mentions budget willingness or previous program experience)\nFirst time fitness program\n\n❌ NOT QUALIFIED (give free resources):\nVague goals (\"just want to be fit\")\nCan only commit 1-2 days per week\nLooking for completely free solutions\nNot ready to invest or make changes\n\n## TOOLS AVAILABLE:\nlead_capture: Add qualified leads to Google Sheets with email and conversation summary\n\n## RESPONSE TEMPLATES:\n\nFor QUALIFIED leads:\n\"Perfect! You sound like an ideal fit for Coach Luv's program. To schedule your free 20-minute consultation call, I'll need your email address. Coach Luv will personally discuss your goals and create a customized plan for your transformation.\"\n\nFor NOT QUALIFIED leads:\n\"Thanks for sharing! I can see you're interested in fitness. While you might not be ready for a structured program right now, I encourage you to start with some basic fitness habits. When you're ready to commit more time and invest in a structured transformation program, feel free to reach out again! Best of luck with your fitness journey! 🙌\"\n\n## AFTER COLLECTING EMAIL:\n\nFor QUALIFIED leads:\nCall lead_capture tool with: email, \"QUALIFIED\", conversation summary\nSend: \"Excellent! I've added you to Coach Luv's calendar system. Here's your free consultation booking link: https://calendly.com/coachluv/consultation - Choose a time that works for your schedule.\n\nAs a bonus, here's Coach Luv's free transformation guide to get you started: https://coachluv.com/free-guide\nCoach Luv is excited to help you achieve your transformation goals! 💪\"\n\nFor NOT QUALIFIED leads:\nDO NOT ask for email\nOnly send the normal message above\nDO NOT call any tools\nDO NOT send any links\n\n## TONE & PERSONALITY:\nWarm and encouraging, using Indian expressions naturally\nProfessional but friendly\nUnderstanding of Indian work-life challenges\nMotivational without being pushy\nUse appropriate emojis to keep it engaging\n\n## IMPORTANT NOTES:\nKeep responses concise and conversational\nAsk questions one at a time, don't overwhelm\nAlways collect email before sharing any links\nUse the lead_capture tool for EVERY lead (qualified or not)\nRespect budget constraints common in Indian market\nBe understanding of family and work commitments typical in Indian culture"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "efe94d81-bd32-442d-97e8-8ee71506afef",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        192
+      ],
+      "id": "fa1be7e8-e293-417f-b224-1317c17d30d6",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "L3P9Ae81haTD2rYm",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.contact_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        224
+      ],
+      "id": "68f73598-94df-4e23-9d24-17beb88d7bb3",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1M1XN4sMtqArVajj58Kp3VYygN6DItBQg_uxM6yJ5QtM",
+          "mode": "list",
+          "cachedResultName": "Instagram plus manychat",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M1XN4sMtqArVajj58Kp3VYygN6DItBQg_uxM6yJ5QtM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1M1XN4sMtqArVajj58Kp3VYygN6DItBQg_uxM6yJ5QtM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email ID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email_ID', ``, 'string') }}",
+            "Summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Email ID",
+              "displayName": "Email ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        272,
+        208
+      ],
+      "id": "6618ae40-093b-4d4f-923b-9b26cde8b847",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Nn6MoNvB7CWuaQp9",
+          "name": "Lakshit Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "fbf741c8-5ea1-4d2f-9330-e7180bcff580",
+  "triggerCount": 1,
+  "tags": []
+}

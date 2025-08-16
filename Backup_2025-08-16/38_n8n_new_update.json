@@ -1,0 +1,819 @@
+{
+  "createdAt": "2025-08-12T12:43:21.204Z",
+  "updatedAt": "2025-08-12T14:54:00.000Z",
+  "id": "tCPJWe6HpFbiQWyW",
+  "name": "38_n8n_new_update",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://github.com/n8n-io/n8n/releases.atom",
+        "options": {}
+      },
+      "id": "462d25dc-79f6-45b1-af5a-882249ed7248",
+      "name": "HTTP - GitHub Releases (Atom)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -16,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "84fdf54d-421d-4cd3-bf1b-bdd81b95feed",
+      "name": "XML → JSON (Releases)",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        224,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function toISO(s){try{return new Date(s).toISOString()}catch(e){return null}}\nfunction idHash(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h)+s.charCodeAt(i);h&=0xffffffff}return (h>>>0).toString(16)}\n\nconst feed=$json.feed||{};\nconst entries=Array.isArray(feed.entry)?feed.entry:(feed.entry?[feed.entry]:[]);\nconst out=[];\nfor(const e of entries){\n  const title=(e.title&&(e.title._||e.title))||'';\n  const links=Array.isArray(e.link)?e.link:(e.link?[e.link]:[]);\n  const link=links.find(l=>!l.$||l.$.rel!==\"self\")||links[0]||{};\n  const url=(link.$&&(link.$.href||link.href))||link.href||e.id||'';\n  const pub=e.updated||e.published||feed.updated||null;\n  const subtitle=(e.summary&&(e.summary._||e.summary))||(e.content&&(e.content._||e.content))||null;\n  const source='release';\n  const key=`${source}::${title}::${url}`;\n  out.push({\n    source,\n    title:String(title||'').trim(),\n    url:String(url||'').trim(),\n    publishedAt:toISO(pub),\n    subtitle:subtitle?String(subtitle).trim():null,\n    version:null,\n    tags:[],\n    id:idHash(key),\n    raw:e\n  });\n}\nreturn out.map(j=>({json:j}));"
+      },
+      "id": "234b79fa-fabf-4d03-a73f-5aa71333291e",
+      "name": "Normalize: Releases → unified",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        448,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const versionRegex=/(?:n8n@|v)\\s*([0-9]+\\.[0-9]+\\.[0-9]+)/i;\nfor(const it of items){\n  const j=it.json;\n  const m=(j.title||'').match(versionRegex);\n  if(m) j.version=m[1];\n  if(j.version) j.tags.push('release');\n}\nreturn items;"
+      },
+      "id": "93d0db2a-2192-4002-9878-164910ad4d18",
+      "name": "Enrich (version + tags)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        640,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const sd=this.getWorkflowStaticData('global');\nif(!sd.seenIds) sd.seenIds=[];\nconst seen=new Set(sd.seenIds);\nconst fresh=[];\nfor(const it of items){const id=it.json.id;if(!seen.has(id)){fresh.push(it);seen.add(id)}}\nsd.seenIds=Array.from(seen);\nreturn fresh.length?fresh:[{json:{info:'no-new-items'}}];"
+      },
+      "id": "9a22ed77-8eb6-4ff2-aef0-bbe00eeacb67",
+      "name": "Dedupe (workflow static data)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        848,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function mdLink(t,u){return `<${u}|${String(t).replace(/\\n/g,' ')}>`}\nif(items.length===1&&items[0].json.info==='no-new-items'){\n  return[{json:{digest:{items:[],blocks:[{type:'header',text:{type:'plain_text',text:'n8n Weekly Updates',emoji:true}},{type:'section',text:{type:'mrkdwn',text:'No new official updates this week ✅'}}]}}}];\n}\nconst list=items.map(x=>x.json).sort((a,b)=>String(b.publishedAt||'').localeCompare(String(a.publishedAt||'')));\nconst blocks=[{type:'header',text:{type:'plain_text',text:'n8n Weekly Updates',emoji:true}},{type:'context',elements:[{type:'mrkdwn',text:`Week of ${new Date().toLocaleDateString('en-GB')}`}]},{type:'divider'},{type:'section',text:{type:'mrkdwn',text:':tada: *Releases*'}},{type:'section',text:{type:'mrkdwn',text:list.slice(0,5).map(i=>{const v=i.version?` • *v${i.version}*`:'';const d=i.publishedAt?` • ${new Date(i.publishedAt).toLocaleDateString('en-GB')}`:'';return `• ${mdLink(i.title,i.url)}${v}${d}`}).join('\\n')}}];\nreturn[{json:{digest:{items:list,blocks}}}];"
+      },
+      "id": "7de49aae-1238-432d-9966-3f105b500c74",
+      "name": "Build Digest (items + Slack blocks)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09ADULQJG1",
+          "mode": "list",
+          "cachedResultName": "n8n-update"
+        },
+        "messageType": "block",
+        "blocksUi": "={{ $json.digest.items[0].subtitle }}",
+        "text": "=",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        1728
+      ],
+      "id": "0e5a88f9-3178-45c7-b3a8-5a65a0def356",
+      "name": "Send a message",
+      "webhookId": "07e819b5-37bb-4769-bd7c-b366ea5054f2",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "ZC8Jm1dyTNehWjKR",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build final summary - NO external dependencies\n\nif ($input.all().length === 1 && $input.all()[0].json.message) {\n  return $input.all(); // Pass through \"no new items\" message\n}\n\n// Group by source\nconst grouped = {};\nconst allItems = [];\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  allItems.push(data);\n  \n  if (!grouped[data.source]) {\n    grouped[data.source] = [];\n  }\n  grouped[data.source].push(data);\n}\n\n// Sort by date\nfor (const source in grouped) {\n  grouped[source].sort((a, b) => {\n    const dateA = new Date(a.publishedAt || 0);\n    const dateB = new Date(b.publishedAt || 0);\n    return dateB - dateA;\n  });\n}\n\n// Build summary\nconst summary = {\n  totalItems: allItems.length,\n  weekOf: new Date().toLocaleDateString('en-GB'),\n  generatedAt: new Date().toISOString(),\n  bySource: {},\n  allItems: allItems.sort((a, b) => {\n    const dateA = new Date(a.publishedAt || 0);\n    const dateB = new Date(b.publishedAt || 0);\n    return dateB - dateA;\n  })\n};\n\n// Add source breakdown\nfor (const [source, items] of Object.entries(grouped)) {\n  summary.bySource[source] = {\n    count: items.length,\n    latest: items[0]?.title || 'N/A',\n    items: items.slice(0, 10)\n  };\n}\n\n// Create text summary\nlet textSummary = `n8n Weekly Updates - ${summary.weekOf}\\n`;\ntextSummary += `Total: ${summary.totalItems} new items\\n\\n`;\n\nconst sourceEmojis = {\n  release: '🎉 Releases',\n  blog: '📰 Blog Posts', \n  docs: '📚 Documentation',\n  forum: '📢 Announcements'\n};\n\nfor (const [source, data] of Object.entries(summary.bySource)) {\n  if (data.count > 0) {\n    textSummary += `${sourceEmojis[source] || source}: ${data.count} items\\n`;\n    for (const item of data.items.slice(0, 5)) {\n      const date = item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('en-GB') : 'No date';\n      const version = item.version ? ` (v${item.version})` : '';\n      textSummary += `  • ${item.title}${version} - ${date}\\n`;\n      if (item.url) textSummary += `    ${item.url}\\n`;\n    }\n    textSummary += '\\n';\n  }\n}\n\nreturn [{ json: { summary, textSummary } }];"
+      },
+      "id": "f9bbc64a-f088-4af0-9d38-d2ed2ef56ccf",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple deduplication within current execution - NO external dependencies\n// This will dedupe items within this single run (not across workflow executions)\n\nconst seenIds = new Set();\nconst newItems = [];\nconst duplicateItems = [];\n\nfor (const item of $input.all()) {\n  const id = item.json.id;\n  if (!seenIds.has(id)) {\n    newItems.push(item);\n    seenIds.add(id);\n  } else {\n    duplicateItems.push(item);\n  }\n}\n\nconsole.log(`Total items: ${$input.all().length}`);\nconsole.log(`Unique items: ${newItems.length}`);\nconsole.log(`Duplicates removed: ${duplicateItems.length}`);\n\nif (newItems.length === 0) {\n  return [{ json: { message: 'No items found', totalChecked: $input.all().length } }];\n}\n\n// Sort by date (newest first)\nnewItems.sort((a, b) => {\n  const dateA = new Date(a.json.publishedAt || 0);\n  const dateB = new Date(b.json.publishedAt || 0);\n  return dateB - dateA;\n});\n\nreturn newItems;"
+      },
+      "id": "b7ad585a-b6fa-4c26-95b8-88472330a21a",
+      "name": "Remove Duplicates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract versions and add tags - NO external dependencies\nconst versionRegex = /(?:n8n@|version |v)\\s*([0-9]+\\.[0-9]+\\.[0-9]+)/i;\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  \n  // Extract version from title\n  const versionMatch = data.title.match(versionRegex);\n  if (versionMatch) {\n    data.version = versionMatch[1];\n    if (!data.tags.includes('release')) {\n      data.tags.push('versioned');\n    }\n  }\n  \n  // Add tags based on content\n  const titleLower = data.title.toLowerCase();\n  if (titleLower.includes('security')) data.tags.push('security');\n  if (titleLower.includes('fix')) data.tags.push('bugfix');\n  if (titleLower.includes('feat') || titleLower.includes('feature')) data.tags.push('feature');\n  if (titleLower.includes('breaking')) data.tags.push('breaking-change');\n}\n\nreturn $input.all();"
+      },
+      "id": "1c40b410-6e67-44ba-a460-38542bda85a3",
+      "name": "Add Versions & Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "378d793d-92e6-4bc9-a47d-7aa5b40d350f",
+      "name": "Merge All",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        336,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process Atom feeds - Pure JavaScript XML parsing\n\n// Simple hash using built-in JS only\nfunction makeId(input) {\n  let result = 0;\n  for (let i = 0; i < input.length; i++) {\n    result = ((result << 5) - result) + input.charCodeAt(i);\n    result = result & result; // 32-bit integer\n  }\n  return Math.abs(result).toString();\n}\n\nfunction cleanDate(dateStr) {\n  if (!dateStr) return null;\n  try {\n    return new Date(dateStr).toISOString();\n  } catch {\n    return null;\n  }\n}\n\n// Simple XML text extraction - no external dependencies\nfunction extractXMLValue(xml, tagName) {\n  const regex = new RegExp(`<${tagName}[^>]*>(.*?)<\\/${tagName}>`, 'gi');\n  const matches = [];\n  let match;\n  while ((match = regex.exec(xml)) !== null) {\n    matches.push(match[1].trim());\n  }\n  return matches;\n}\n\nfunction extractXMLAttribute(xml, tagName, attribute) {\n  const regex = new RegExp(`<${tagName}[^>]*${attribute}=[\"']([^\"']*)[\"'][^>]*>`, 'gi');\n  const matches = [];\n  let match;\n  while ((match = regex.exec(xml)) !== null) {\n    matches.push(match[1]);\n  }\n  return matches;\n}\n\nfunction parseSimpleAtom(xmlContent, sourceType) {\n  const entries = [];\n  \n  // Split by entry tags\n  const entryMatches = xmlContent.match(/<entry[^>]*>.*?<\\/entry>/gis);\n  if (!entryMatches) return entries;\n  \n  for (const entryXML of entryMatches) {\n    const titles = extractXMLValue(entryXML, 'title');\n    const updateds = extractXMLValue(entryXML, 'updated');\n    const publisheds = extractXMLValue(entryXML, 'published');\n    const summaries = extractXMLValue(entryXML, 'summary');\n    const contents = extractXMLValue(entryXML, 'content');\n    const hrefs = extractXMLAttribute(entryXML, 'link', 'href');\n    \n    const title = (titles[0] || '').trim();\n    const url = (hrefs.find(h => !h.includes('comments')) || hrefs[0] || '').trim();\n    const publishedAt = cleanDate(updateds[0] || publisheds[0]);\n    const subtitle = (summaries[0] || contents[0] || '').trim().substring(0, 200);\n    \n    if (title) {\n      entries.push({\n        source: sourceType,\n        title,\n        url,\n        publishedAt,\n        subtitle: subtitle || null,\n        version: null,\n        tags: [sourceType === 'release' ? 'release' : sourceType === 'docs' ? 'docs-update' : 'dev-activity'],\n        id: makeId(sourceType + title + url),\n        raw: { title, url, publishedAt, subtitle }\n      });\n    }\n  }\n  \n  return entries;\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const xmlContent = item.json;\n  let sourceType = 'unknown';\n  \n  if (item.node === 'Releases Atom') sourceType = 'release';\n  else if (item.node === 'Docs Atom') sourceType = 'docs';\n  \n  try {\n    if (typeof xmlContent === 'string') {\n      const parsed = parseSimpleAtom(xmlContent, sourceType);\n      results.push(...parsed);\n    } else {\n      console.log(`Invalid XML content for ${sourceType}`);\n    }\n  } catch (error) {\n    console.log(`Error parsing ${sourceType}:`, error.message);\n  }\n}\n\nreturn results.map(item => ({ json: item }));"
+      },
+      "id": "2513cbbc-1b88-4bf2-8e6b-77563f4051ef",
+      "name": "Process Atom Feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process RSS feeds - NO external dependencies\n\n// Simple hash using built-in JS only\nfunction makeId(input) {\n  let result = 0;\n  for (let i = 0; i < input.length; i++) {\n    result = ((result << 5) - result) + input.charCodeAt(i);\n    result = result & result; // 32-bit integer\n  }\n  return Math.abs(result).toString();\n}\n\nfunction cleanDate(dateStr) {\n  if (!dateStr) return null;\n  try {\n    return new Date(dateStr).toISOString();\n  } catch {\n    return null;\n  }\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const data = item.json;\n  \n  let source = 'unknown';\n  if (item.node === 'n8n Blog RSS') source = 'blog';\n  else if (item.node === 'Forum RSS') source = 'forum';\n  \n  const title = (data.title || '').trim();\n  const url = (data.link || data.url || '').trim();\n  const publishedAt = cleanDate(data.pubDate || data.isoDate || data.published);\n  const subtitle = data.contentSnippet || data.content || data.summary || null;\n  \n  results.push({\n    source,\n    title,\n    url,\n    publishedAt,\n    subtitle: subtitle ? subtitle.trim().substring(0, 200) : null,\n    version: null,\n    tags: [source === 'blog' ? 'news' : 'announcement'],\n    id: makeId(source + title + url),\n    raw: data\n  });\n}\n\nreturn results.map(item => ({ json: item }));"
+      },
+      "id": "52673e1e-0e59-480d-b603-a37d4ac9f4ba",
+      "name": "Process RSS Feeds",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://github.com/n8n-io/n8n-docs/commits.atom",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "e2550c82-a702-48ae-8e68-0d7a36af362a",
+      "name": "Docs Atom",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -64,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://github.com/n8n-io/n8n/releases.atom",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "5dff058a-92e0-405b-ad8f-1bbf2dd88850",
+      "name": "Releases Atom",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -64,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://community.n8n.io/c/announcements/11.rss",
+        "options": {}
+      },
+      "id": "eb595dd8-a305-4671-9d11-ba06d8401438",
+      "name": "Forum RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://blog.n8n.io/rss/",
+        "options": {}
+      },
+      "id": "960db50f-5b75-44da-adfb-271398a9f0e4",
+      "name": "n8n Blog RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -144
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ae67ff8b-7269-42f8-8496-3d9876c719b2",
+      "name": "Weekly Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://blog.n8n.io/rss/",
+        "options": {}
+      },
+      "id": "ddfe8e04-f28a-457b-8f7a-30378d2e189a",
+      "name": "Blog RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://github.com/n8n-io/n8n/releases.atom",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "a1f743d5-7956-4b80-9b04-09e26d2052e8",
+      "name": "Releases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -176,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://github.com/n8n-io/n8n-docs/commits.atom",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "dc6289b6-e794-4443-af6f-53ead02f72c5",
+      "name": "Docs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -176,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function hash(str) { let h=0; for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i)&0xffffffff; return Math.abs(h).toString(); }\nfunction date(d) { try { return new Date(d).toISOString(); } catch { return null; } }\nconst out=[]; for(const item of $input.all()) { const d=item.json; let src='unknown'; if(item.node==='Blog RSS') src='blog'; else if(item.node==='Forum RSS') src='forum'; const title=(d.title||'').trim(); const url=(d.link||d.url||'').trim(); out.push({json:{source:src,title,url,publishedAt:date(d.pubDate||d.isoDate),subtitle:d.contentSnippet||null,version:null,tags:[src==='blog'?'news':'announcement'],id:hash(src+title+url)}}); } return out;"
+      },
+      "id": "2c902e5b-fa40-4be1-81f1-618ef3550ec7",
+      "name": "Process RSS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function hash(str) { let h=0; for(let i=0;i<str.length;i++) h=((h<<5)-h)+str.charCodeAt(i)&0xffffffff; return Math.abs(h).toString(); }\nfunction date(d) { try { return new Date(d).toISOString(); } catch { return null; } }\nfunction xml(content,tag) { const r=new RegExp(`<${tag}[^>]*>(.*?)</${tag}>`,'gi'); const m=[]; let x; while((x=r.exec(content))) m.push(x[1].trim()); return m; }\nfunction attr(content,tag,a) { const r=new RegExp(`<${tag}[^>]*${a}=[\"']([^\"']*)[\"']`,'gi'); const m=[]; let x; while((x=r.exec(content))) m.push(x[1]); return m; }\nconst out=[]; for(const item of $input.all()) { const content=item.json; let src='unknown'; if(item.node==='Releases') src='release'; else if(item.node==='Docs') src='docs'; if(typeof content==='string') { const entries=content.match(/<entry[^>]*>.*?<\\/entry>/gis)||[]; for(const e of entries) { const titles=xml(e,'title'); const dates=xml(e,'updated').concat(xml(e,'published')); const hrefs=attr(e,'link','href'); const title=titles[0]||''; const url=hrefs[0]||''; if(title) out.push({json:{source:src,title,url,publishedAt:date(dates[0]),subtitle:null,version:null,tags:[src==='release'?'release':'docs'],id:hash(src+title+url)}}); } } } return out;"
+      },
+      "id": "85c5d64a-a1fd-4517-b837-c497b296479f",
+      "name": "Process Atom",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        1072
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {},
+      "id": "b2b07f05-a4a5-4920-b90b-3ce5c1170b91",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        224,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vr=/(?:n8n@|v)\\s*([0-9]+\\.[0-9]+\\.[0-9]+)/i; for(const item of $input.all()) { const d=item.json; const m=d.title.match(vr); if(m) d.version=m[1]; const t=d.title.toLowerCase(); if(t.includes('fix')) d.tags.push('fix'); if(t.includes('feat')) d.tags.push('feature'); } return $input.all();"
+      },
+      "id": "8e3df25d-c586-43ae-974a-a51500dde1a3",
+      "name": "Add Versions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const seen=new Set(); const out=[]; for(const item of $input.all()) { if(!seen.has(item.json.id)) { seen.add(item.json.id); out.push(item); } } return out.length ? out : [{json:{message:'No items'}}];"
+      },
+      "id": "1527f448-71fa-4be9-8be6-1af7075985c8",
+      "name": "Dedupe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cutoff=new Date(Date.now()-7*24*60*60*1000); const out=[]; for(const item of $input.all()) { if(item.json.publishedAt && new Date(item.json.publishedAt)>=cutoff) out.push(item); else if(!item.json.publishedAt) out.push(item); } return out.length ? out : [{json:{message:'No recent items'}}];"
+      },
+      "id": "06c70f3e-7e2e-43ec-a004-5f9f686000a9",
+      "name": "Filter Week",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        992
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "613167e9-d8cb-49ce-afe6-5febe8483521",
+      "name": "Weekly Trigger1",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://community.n8n.io/c/announcements/11.rss",
+        "options": {}
+      },
+      "id": "6325a782-3b50-4ef4-9a63-2646ef59368c",
+      "name": "Forum RSS1",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if($input.all().length===1 && $input.all()[0].json.message) return $input.all(); const g={}; for(const item of $input.all()) { const d=item.json; if(!g[d.source]) g[d.source]=[]; g[d.source].push(d); } let text=`n8n Updates - ${new Date().toLocaleDateString()}\\nTotal: ${$input.all().length} items\\n\\n`; const e={release:'🎉 Releases',blog:'📰 Blog',docs:'📚 Docs',forum:'📢 Forum'}; for(const [k,v] of Object.entries(g)) { if(v.length) { text+=`${e[k]||k}: ${v.length}\\n`; v.sort((a,b)=>new Date(b.publishedAt||0)-new Date(a.publishedAt||0)).slice(0,5).forEach(i=>{ const d=i.publishedAt?new Date(i.publishedAt).toLocaleDateString():''; const ver=i.version?` (v${i.version})`:''; text+=`  • ${i.title}${ver} - ${d}\\n    ${i.url}\\n`; }); text+='\\n'; } } return [{json:{summary:g,text}}];"
+      },
+      "id": "faae13e3-b087-4d1b-b6e0-7547abf0827d",
+      "name": "Build Summary1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "99349feb-9807-4b13-9027-56afc397e0fc",
+      "name": "XML → JSON (Releases)1",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        96,
+        1328
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        1728
+      ],
+      "id": "7e96bea7-3cdf-49d1-beed-b831c4935b6f",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "connections": {
+    "HTTP - GitHub Releases (Atom)": {
+      "main": [
+        [
+          {
+            "node": "XML → JSON (Releases)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML → JSON (Releases)": {
+      "main": [
+        [
+          {
+            "node": "Normalize: Releases → unified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize: Releases → unified": {
+      "main": [
+        [
+          {
+            "node": "Enrich (version + tags)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich (version + tags)": {
+      "main": [
+        [
+          {
+            "node": "Dedupe (workflow static data)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedupe (workflow static data)": {
+      "main": [
+        [
+          {
+            "node": "Build Digest (items + Slack blocks)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest (items + Slack blocks)": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Versions & Tags": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All": {
+      "main": [
+        [
+          {
+            "node": "Add Versions & Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Atom Feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Process RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Merge All",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Docs Atom": {
+      "main": [
+        [
+          {
+            "node": "Process Atom Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Releases Atom": {
+      "main": [
+        [
+          {
+            "node": "Process Atom Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forum RSS": {
+      "main": [
+        [
+          {
+            "node": "Process RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n Blog RSS": {
+      "main": [
+        [
+          {
+            "node": "Process RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Trigger": {
+      "main": [
+        [
+          {
+            "node": "n8n Blog RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Forum RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Releases Atom",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Docs Atom",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blog RSS": {
+      "main": [
+        [
+          {
+            "node": "Process RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Releases": {
+      "main": [
+        [
+          {
+            "node": "Process Atom",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Docs": {
+      "main": [
+        [
+          {
+            "node": "XML → JSON (Releases)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Atom": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add Versions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Versions": {
+      "main": [
+        [
+          {
+            "node": "Dedupe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedupe": {
+      "main": [
+        [
+          {
+            "node": "Filter Week",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Week": {
+      "main": [
+        [
+          {
+            "node": "Build Summary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Blog RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Forum RSS1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Releases",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forum RSS1": {
+      "main": [
+        [
+          {
+            "node": "Process RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP - GitHub Releases (Atom)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "388b3600-4975-45ec-a335-01910d1edb3f",
+  "triggerCount": 0,
+  "tags": []
+}
